@@ -28,6 +28,15 @@ Display — on every platform, including Windows dev machines. There is no
 `--windowed`/fullscreen distinction anymore; don't reintroduce one without
 checking with the user first.
 
+On Raspberry Pi OS, the window also carries `Qt.WindowStaysOnTopHint` and is
+explicitly `move(0, 0)`'d in `main()` — the LXDE/PIXEL desktop panel reserves
+screen space via an EWMH strut, so without this the window manager places a
+plain frameless window inside the strut-reduced work area (pushed down below
+the panel), clipping the bottom of the sidebar off-screen. This can only
+actually be verified on real Pi hardware, same caveat as device auto-detect
+below — on Windows the flag/move are harmless no-ops behaviorally (window is
+already undecorated and at the dev monitor's origin-ish position).
+
 There is no test suite, linter, or build step in this repo — it's a small
 script-style app with no packaging beyond the systemd unit in `packaging/`.
 

@@ -1,7 +1,7 @@
 # Graph Report - pt_thermal_viewer_final  (2026-07-09)
 
 ## Corpus Check
-- 7 files · ~6,615 words
+- 7 files · ~6,757 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary

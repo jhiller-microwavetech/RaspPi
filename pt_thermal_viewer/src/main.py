@@ -239,7 +239,16 @@ class MainWindow(QMainWindow):
     def __init__(self, device: str = None):
         super().__init__()
         self.setWindowTitle("Thermal Viewer")
-        self.setWindowFlags(self.windowFlags() | Qt.FramelessWindowHint)
+        # WindowStaysOnTopHint matters on Raspberry Pi OS: the LXDE/PIXEL
+        # desktop panel reserves screen space via an EWMH strut, so a
+        # normally-placed window gets pushed down below it (which is what
+        # was clipping the bottom of the sidebar on real hardware) unless
+        # it explicitly paints above the panel. Combined with the explicit
+        # move(0, 0) in main() (WMs auto-place new windows inside the
+        # strut-reduced work area, ignoring a naive geometry request).
+        self.setWindowFlags(
+            self.windowFlags() | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
+        )
         self.setFixedSize(BASE_WINDOW_W, BASE_WINDOW_H)
         self._mono_font = _mono_font()
         self.setStyleSheet(_STYLESHEET)
@@ -589,7 +598,13 @@ def main():
 
     app = QApplication(sys.argv)
     win = MainWindow(device=device)
+    # Force the physical top-left corner rather than trusting the window
+    # manager's auto-placement, which on Raspberry Pi OS keeps new windows
+    # inside the desktop panel's strut-reduced work area by default.
+    win.move(0, 0)
     win.show()
+    win.raise_()
+    win.activateWindow()
     win.start()
     sys.exit(app.exec_())
 
