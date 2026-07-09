@@ -19,7 +19,7 @@ from PyQt5.QtWidgets import (
     QSizePolicy,
 )
 
-from capture import LeptonCapture, ThermalFrame, IMG_WIDTH, IMG_HEIGHT
+from capture import LeptonCapture, ThermalFrame, IMG_WIDTH, IMG_HEIGHT, IS_WINDOWS
 from render import (
     Palette,
     TemporalSmoother,
@@ -239,16 +239,13 @@ class MainWindow(QMainWindow):
     def __init__(self, device: str = None):
         super().__init__()
         self.setWindowTitle("Thermal Viewer")
-        # WindowStaysOnTopHint matters on Raspberry Pi OS: the LXDE/PIXEL
-        # desktop panel reserves screen space via an EWMH strut, so a
-        # normally-placed window gets pushed down below it (which is what
-        # was clipping the bottom of the sidebar on real hardware) unless
-        # it explicitly paints above the panel. Combined with the explicit
-        # move(0, 0) in main() (WMs auto-place new windows inside the
-        # strut-reduced work area, ignoring a naive geometry request).
-        self.setWindowFlags(
-            self.windowFlags() | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
-        )
+        self.setWindowFlags(self.windowFlags() | Qt.FramelessWindowHint)
+        # BASE_WINDOW_W/H is the exact physical resolution of the target Pi
+        # screen, so this fixed size is also what showFullScreen() ends up
+        # producing on the Pi (see main()) -- fullscreen there is what
+        # actually paints over the LXDE/PIXEL desktop panel's reserved
+        # strut area; a plain frameless window at a WM-chosen position gets
+        # pushed down below the panel instead, clipping the sidebar.
         self.setFixedSize(BASE_WINDOW_W, BASE_WINDOW_H)
         self._mono_font = _mono_font()
         self.setStyleSheet(_STYLESHEET)
@@ -598,13 +595,16 @@ def main():
 
     app = QApplication(sys.argv)
     win = MainWindow(device=device)
-    # Force the physical top-left corner rather than trusting the window
-    # manager's auto-placement, which on Raspberry Pi OS keeps new windows
-    # inside the desktop panel's strut-reduced work area by default.
-    win.move(0, 0)
-    win.show()
-    win.raise_()
-    win.activateWindow()
+    if IS_WINDOWS:
+        # Plain fixed-size window for dev/preview -- showFullScreen() would
+        # stretch to the dev monitor's actual resolution, which isn't what
+        # we want when previewing the Pi's fixed 800x480 layout on Windows.
+        win.show()
+    else:
+        # True EWMH fullscreen -- needed on Raspberry Pi OS so the window
+        # paints over the LXDE/PIXEL desktop panel instead of being placed
+        # below it inside the panel's strut-reduced work area.
+        win.showFullScreen()
     win.start()
     sys.exit(app.exec_())
 

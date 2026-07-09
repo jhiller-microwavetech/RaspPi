@@ -1,7 +1,7 @@
 # Graph Report - pt_thermal_viewer_final  (2026-07-09)
 
 ## Corpus Check
-- 7 files · ~6,978 words
+- 7 files · ~7,030 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `8853dcb2`
+- Built from commit: `a87a6555`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 

@@ -10,8 +10,8 @@
     "semantic_hash": ""
   },
   "pt_thermal_viewer/src/main.py": {
-    "mtime": 1783601924.4022398,
-    "ast_hash": "8b1e82f8f95d4c107597602e134005f8",
+    "mtime": 1783602467.3639562,
+    "ast_hash": "517f35f859be2f05398329e7ec278481",
     "semantic_hash": ""
   },
   "pt_thermal_viewer/src/render.py": {
@@ -25,8 +25,8 @@
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1783601995.4400125,
-    "ast_hash": "67ee5d2c487b9dcfff97da2173c807fd",
+    "mtime": 1783602503.0609918,
+    "ast_hash": "aedf5c13f61d38b985f6a2276c8ce8c3",
     "semantic_hash": ""
   },
   "pt_thermal_viewer/README.md": {

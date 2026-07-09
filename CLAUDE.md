@@ -24,18 +24,19 @@ python3 main.py 1              # explicit device index (Windows)
 
 The window is always a fixed, frameless 800x480 (`BASE_WINDOW_W`/`BASE_WINDOW_H`
 in `main.py`) — the exact resolution of the target Raspberry Pi 7" Touch
-Display — on every platform, including Windows dev machines. There is no
-`--windowed`/fullscreen distinction anymore; don't reintroduce one without
-checking with the user first.
-
-On Raspberry Pi OS, the window also carries `Qt.WindowStaysOnTopHint` and is
-explicitly `move(0, 0)`'d in `main()` — the LXDE/PIXEL desktop panel reserves
-screen space via an EWMH strut, so without this the window manager places a
-plain frameless window inside the strut-reduced work area (pushed down below
-the panel), clipping the bottom of the sidebar off-screen. This can only
-actually be verified on real Pi hardware, same caveat as device auto-detect
-below — on Windows the flag/move are harmless no-ops behaviorally (window is
-already undecorated and at the dev monitor's origin-ish position).
+Display. `main()` branches on `IS_WINDOWS` for how it's shown, though: on
+Windows dev machines it's `win.show()` at that fixed size, so you get a 1:1
+preview of the Pi's layout on your dev monitor without it stretching to fill
+whatever resolution that monitor actually is. On Raspberry Pi OS it's
+`win.showFullScreen()` instead — true EWMH fullscreen, which is what actually
+paints over the LXDE/PIXEL desktop panel; the panel reserves screen space via
+a strut, so a plain (non-fullscreen) frameless window gets placed by the
+window manager inside the strut-reduced work area, pushed down below the
+panel and clipping the bottom of the sidebar off-screen. Since
+`BASE_WINDOW_W/H` already matches the Pi screen's physical resolution,
+fullscreen there doesn't actually resize anything, it just changes how the
+WM treats the window's stacking/placement. This split can only really be
+verified on real Pi hardware — same caveat as device auto-detect below.
 
 There is no test suite, linter, or build step in this repo — it's a small
 script-style app with no packaging beyond the systemd unit in `packaging/`.

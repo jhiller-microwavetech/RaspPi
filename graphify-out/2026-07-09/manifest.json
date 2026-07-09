@@ -1,7 +1,7 @@
 {
   ".claude/settings.local.json": {
-    "mtime": 1783600010.8275816,
-    "ast_hash": "9853c5b4eb265db4d340777c368afb30",
+    "mtime": 1783601877.0167937,
+    "ast_hash": "fa22dd2cc103b1b6a8119f58b2060b7a",
     "semantic_hash": ""
   },
   "pt_thermal_viewer/src/capture.py": {
@@ -10,8 +10,8 @@
     "semantic_hash": ""
   },
   "pt_thermal_viewer/src/main.py": {
-    "mtime": 1783600676.5163743,
-    "ast_hash": "16dc764eb1332660deee57148f270ac7",
+    "mtime": 1783601924.4022398,
+    "ast_hash": "8b1e82f8f95d4c107597602e134005f8",
     "semantic_hash": ""
   },
   "pt_thermal_viewer/src/render.py": {
@@ -25,8 +25,8 @@
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1783600772.807977,
-    "ast_hash": "8c38f4863629d151e364acfeba5f6756",
+    "mtime": 1783601995.4400125,
+    "ast_hash": "67ee5d2c487b9dcfff97da2173c807fd",
     "semantic_hash": ""
   },
   "pt_thermal_viewer/README.md": {
