@@ -1,0 +1,42 @@
+{
+  ".claude/settings.local.json": {
+    "mtime": 1783600010.8275816,
+    "ast_hash": "9853c5b4eb265db4d340777c368afb30",
+    "semantic_hash": ""
+  },
+  "pt_thermal_viewer/src/capture.py": {
+    "mtime": 1783539762.0,
+    "ast_hash": "797ca202f78e62392d62aab79f5220b0",
+    "semantic_hash": ""
+  },
+  "pt_thermal_viewer/src/main.py": {
+    "mtime": 1783598875.20297,
+    "ast_hash": "8dbab461ee3665128188540f4e77d11a",
+    "semantic_hash": ""
+  },
+  "pt_thermal_viewer/src/render.py": {
+    "mtime": 1783537646.6818643,
+    "ast_hash": "6018e0c32ba6ef229b29538c70e13564",
+    "semantic_hash": ""
+  },
+  "pt_thermal_viewer/src/telemetry.py": {
+    "mtime": 1783537150.0,
+    "ast_hash": "b35af88c3d290cc712210c15a8dfbd04",
+    "semantic_hash": ""
+  },
+  "CLAUDE.md": {
+    "mtime": 1783598966.851498,
+    "ast_hash": "64b923166988ea1303b6a92d15ce381d",
+    "semantic_hash": ""
+  },
+  "pt_thermal_viewer/README.md": {
+    "mtime": 1783537210.0,
+    "ast_hash": "0fdf525c3b18a0fa76e210e004ccc8ba",
+    "semantic_hash": ""
+  },
+  "pt_thermal_viewer/requirements.txt": {
+    "mtime": 1783537166.0,
+    "ast_hash": "e264bbb912b9796c659871148280a235",
+    "semantic_hash": ""
+  }
+}
