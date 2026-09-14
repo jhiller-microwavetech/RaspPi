@@ -47,33 +47,51 @@ same thing tools like `uvcdynctrl`/libuvc do internally. That makes this
 correct regardless of which Unit ID a given firmware build happens to
 assign, with no external config file or tool required.
 
+## How the command actually gets sent -- and why not a plain libusb transfer
+
+The obvious way to send this (and what an earlier version of this file
+did) is to open the device with pyusb/libusb directly and call
+`dev.ctrl_transfer(...)`. **That does not work here, confirmed on real
+hardware**: it fails with libusb "Access denied (insufficient
+permissions)" -- *not* a udev/file-permission problem (the device node
+was confirmed `crw-rw-rw-`), but a Linux kernel restriction on raw USB
+control transfers addressed to a specific *interface* (which is what a
+UVC extension-unit request is -- recipient=INTERFACE). The kernel only
+allows that from whichever process already has the interface claimed,
+which in the normal case here is the `uvcvideo` kernel driver itself
+(capture.py is streaming this exact device via V4L2 at the same time).
+A second, independent libusb handle opened alongside that is exactly
+the case this restriction exists for.
+
+The fix is to not open a second handle at all: instead, send the SET_CUR
+through **the same V4L2 device node capture.py is already using**, via
+its `UVCIOC_CTRL_QUERY` ioctl (see `_send_via_v4l2_ioctl` below). That
+ioctl is the kernel's own supported mechanism for exactly this --
+uvcvideo, which already owns the interface, submits the request on our
+behalf, so there's no second claimant to conflict with. It still needs
+the `unit` (Unit ID) byte, so extension-unit *discovery* (finding that
+Unit ID from the GUID above) still uses a read-only pyusb descriptor
+scan -- reading descriptors doesn't claim an interface or hit this
+restriction, only the earlier write attempt did, and that discovery step
+is confirmed working on real hardware (it found the RAD unit; a failed
+discovery would have raised a different, more specific error instead of
+the permissions one).
+
 ## Verification status
 
-*** Not yet verified against real hardware. *** Two things here could
-still be wrong for this specific board/firmware build:
-
-  1. Whether `_find_extension_unit` finds the RAD XU at all -- it assumes
-     the descriptor appears in the VideoControl interface's class-specific
-     descriptors, which is true for every compliant UVC device, but worth
-     confirming against real output if it fails.
-  2. The RAD_RUN_FFC selector (0x0B) and GUID above, transcribed from
-     GroupGets' mapping file.
-
-A wrong selector on a *matched* unit is a safe failure: Lepton "Run"
-commands only respond to a bare SET_CUR at this exact selector, so a
-wrong value either gets rejected (USBError) or silently ignored by the
-firmware -- it does not write to some other register. If the GUID match
-in part (1) fails, trigger_ffc raises a clear RuntimeError rather than
-guessing at a Unit ID.
+Discovery (finding the RAD extension unit's Unit ID via its GUID) is
+confirmed working on real hardware. The command itself, now sent via
+UVCIOC_CTRL_QUERY instead of a raw ctrl_transfer, is **not yet verified**
+-- the RAD_RUN_FFC selector (0x0B), transcribed from GroupGets' mapping
+file, is still unconfirmed. A wrong selector is a safe failure (Lepton
+"Run" commands only respond to a bare SET_CUR at this exact selector, so
+a wrong value gets rejected or ignored by the firmware, not written to
+some other register).
 
 To verify on real hardware: run this with the board attached, and confirm
 the sidebar's FFC status transitions NEVER_COMMANDED/COMPLETE -> IMMINENT
 -> IN_PROGRESS -> COMPLETE shortly after triggering (main.py already
-polls and displays `telemetry.FFCState` every frame). If it raises
-"could not find the Lepton RAD extension unit", compare `lsusb -v -d
-1e4e:0100` output's VC_EXTENSION_UNIT descriptors against RAD_XU_GUID
-below -- this firmware build's XU layout may differ from GroupGets'
-reference firmware.
+polls and displays `telemetry.FFCState` every frame).
 
 ## Platform
 
@@ -85,6 +103,8 @@ this feature on the Pi, same as the rest of the board-specific behavior
 in this app.
 """
 
+import ctypes
+import fcntl
 import os
 import uuid
 
@@ -97,7 +117,61 @@ _VC_CS_INTERFACE = 0x24  # bDescriptorType: CS_INTERFACE
 _VC_EXTENSION_UNIT = 0x06  # bDescriptorSubtype: VC_EXTENSION_UNIT
 _VIDEO_INTERFACE_CLASS = 0x0E  # bInterfaceClass: Video
 _VIDEOCONTROL_SUBCLASS = 0x01  # bInterfaceSubClass: VideoControl
+
+# UVC Class-Specific Request Code (linux/uvcvideo.h UVC_SET_CUR) -- used
+# both as a raw bRequest value and as the `query` field of
+# uvc_xu_control_query below; same numeric value either way.
 _UVC_SET_CUR = 0x01
+
+
+class _UvcXuControlQuery(ctypes.Structure):
+    """
+    Mirrors `struct uvc_xu_control_query` from Linux's <linux/uvcvideo.h>
+    field-for-field (same order/types), so ctypes computes the same
+    padding/alignment the kernel header does on this platform (32- vs
+    64-bit differ in pointer size/alignment) -- deliberately not
+    hand-computing byte offsets ourselves, which is where this kind of
+    struct goes subtly wrong.
+
+        __u8  unit;
+        __u8  selector;
+        __u8  query;
+        __u16 size;
+        __u8  *data;
+    """
+
+    _fields_ = [
+        ("unit", ctypes.c_uint8),
+        ("selector", ctypes.c_uint8),
+        ("query", ctypes.c_uint8),
+        ("size", ctypes.c_uint16),
+        ("data", ctypes.POINTER(ctypes.c_uint8)),
+    ]
+
+
+def _iowr(type_char: str, nr: int, size: int) -> int:
+    """
+    Recreates the Linux ioctl request-number encoding (asm-generic/ioctl.h
+    _IOWR macro) for UVCIOC_CTRL_QUERY = _IOWR('u', 0x21, struct
+    uvc_xu_control_query). This encoding (dir/type/nr/size packed into one
+    32-bit int) is stable ABI, not something that varies by kernel version
+    or architecture the way the struct's own padding can.
+    """
+    IOC_WRITE = 1
+    IOC_READ = 2
+    IOC_NRSHIFT = 0
+    IOC_TYPESHIFT = 8
+    IOC_SIZESHIFT = 16
+    IOC_DIRSHIFT = 30
+    return (
+        ((IOC_READ | IOC_WRITE) << IOC_DIRSHIFT)
+        | (ord(type_char) << IOC_TYPESHIFT)
+        | (nr << IOC_NRSHIFT)
+        | (size << IOC_SIZESHIFT)
+    )
+
+
+_UVCIOC_CTRL_QUERY = _iowr("u", 0x21, ctypes.sizeof(_UvcXuControlQuery))
 
 
 class FFCTriggerError(RuntimeError):
@@ -183,26 +257,17 @@ def _find_extension_unit(dev, guid_bytes: bytes):
     return None
 
 
-def trigger_ffc(v4l2_path: str) -> None:
+def _discover_rad_unit_id(v4l2_path: str) -> int:
     """
-    Send the Lepton RAD module's RUN_FFC command to the PureThermal board
-    backing `v4l2_path` (e.g. "/dev/video2"). Raises FFCTriggerError (or
-    lets a usb.core.USBError propagate) on failure -- this function only
-    confirms the USB command was *accepted*, not that the resulting FFC
-    actually completed cleanly; watch telemetry.FFCState in the sidebar
-    for that.
+    Read-only: finds the RAD extension unit's firmware-assigned Unit ID by
+    scanning USB descriptors via pyusb. This does not claim any interface
+    or send anything -- just parses data the kernel already exposes to any
+    opener -- so it does not hit the interface-claim restriction that
+    ctrl_transfer() does (see module docstring). Confirmed working on real
+    hardware: it successfully finds the RAD unit.
     """
-    if IS_WINDOWS:
-        raise NotImplementedError(
-            "FFC trigger is only implemented for Linux (the Pi deployment "
-            "target) -- see this module's docstring for why. Test this on "
-            "the Pi; the Windows equivalent (DirectShow IKsControl) hasn't "
-            "been written."
-        )
-
     try:
         import usb.core
-        import usb.util
     except ImportError as exc:
         raise FFCTriggerError(
             "pyusb isn't installed. On the Pi: `sudo apt install python3-usb` "
@@ -242,13 +307,58 @@ def trigger_ffc(v4l2_path: str) -> None:
             "build may expose extension units differently than GroupGets' "
             "reference firmware."
         )
-    interface_number, unit_id = found
+    _interface_number, unit_id = found
+    return unit_id
 
-    bm_request_type = usb.util.build_request_type(
-        usb.util.CTRL_OUT, usb.util.CTRL_TYPE_CLASS, usb.util.CTRL_RECIPIENT_INTERFACE
+
+def _send_via_v4l2_ioctl(v4l2_path: str, unit_id: int, selector: int, payload: bytes) -> None:
+    """
+    Sends a Lepton CCI "Run" command (SET_CUR) through the UVC extension
+    unit using the *same* V4L2 device node capture.py is already
+    streaming from, via its UVCIOC_CTRL_QUERY ioctl -- see the module
+    docstring for why this, and not a separate libusb ctrl_transfer, is
+    what actually works here.
+    """
+    data_buf = (ctypes.c_uint8 * len(payload))(*payload)
+    query = _UvcXuControlQuery(
+        unit=unit_id,
+        selector=selector,
+        query=_UVC_SET_CUR,
+        size=len(payload),
+        data=ctypes.cast(data_buf, ctypes.POINTER(ctypes.c_uint8)),
     )
-    w_value = RAD_RUN_FFC_SELECTOR << 8
-    w_index = (unit_id << 8) | interface_number
+    fd = os.open(v4l2_path, os.O_RDWR)
+    try:
+        fcntl.ioctl(fd, _UVCIOC_CTRL_QUERY, query, True)
+    except OSError as exc:
+        raise FFCTriggerError(
+            f"UVCIOC_CTRL_QUERY failed (unit={unit_id}, selector=0x"
+            f"{selector:02x}): {exc.strerror or exc} (errno {exc.errno}). "
+            f"errno 2 (ENOENT)/22 (EINVAL) usually means the unit ID or "
+            f"selector is wrong for this firmware build; errno 5 (EIO) can "
+            f"mean the firmware rejected/ignored the command."
+        ) from exc
+    finally:
+        os.close(fd)
+
+
+def trigger_ffc(v4l2_path: str) -> None:
+    """
+    Send the Lepton RAD module's RUN_FFC command to the PureThermal board
+    backing `v4l2_path` (e.g. "/dev/video2"). Raises FFCTriggerError on
+    failure -- this function only confirms the command was *accepted*, not
+    that the resulting FFC actually completed cleanly; watch
+    telemetry.FFCState in the sidebar for that.
+    """
+    if IS_WINDOWS:
+        raise NotImplementedError(
+            "FFC trigger is only implemented for Linux (the Pi deployment "
+            "target) -- see this module's docstring for why. Test this on "
+            "the Pi; the Windows equivalent (DirectShow IKsControl) hasn't "
+            "been written."
+        )
+
+    unit_id = _discover_rad_unit_id(v4l2_path)
     # 1 byte of throwaway data -- Lepton "Run" commands ignore the payload,
     # per the firmware wiki (see module docstring).
-    dev.ctrl_transfer(bm_request_type, _UVC_SET_CUR, w_value, w_index, b"\x00")
+    _send_via_v4l2_ioctl(v4l2_path, unit_id, RAD_RUN_FFC_SELECTOR, b"\x00")
