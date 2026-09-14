@@ -1,10 +1,24 @@
 [Unit]
 Description=PureThermal Lepton 3.5 Viewer (kiosk)
 After=graphical.target
+Wants=graphical.target
 
 [Service]
-# Adjust User/Group and DISPLAY as appropriate for how your Pi boots
-# (this assumes "Desktop Autologin" boot option and user "pi").
+# Assumes raspi-config: System Options -> Boot / Auto Login -> Desktop
+# Autologin, user "pi", AND Advanced Options -> Wayland -> X11.
+#
+# Raspberry Pi OS (Bookworm and later) now boots to the Wayland/labwc
+# desktop by default on every Pi model, including the Pi 3. Under that
+# default, there is no fixed DISPLAY=:0 / ~/.Xauthority the way there is
+# under the classic X11 desktop, so this unit's env vars below will not
+# reliably find the running session. Either:
+#   (a) switch the desktop back to X11 (raspi-config -> Advanced Options
+#       -> Wayland -> X11) so DISPLAY/XAUTHORITY below are valid again, or
+#   (b) if you want to stay on Wayland/labwc, autostart this app instead
+#       via labwc's own autostart file (~/.config/labwc/autostart) rather
+#       than this systemd unit, and drop the DISPLAY/XAUTHORITY lines.
+# See packaging/AUTOSTART.md for the full walkthrough of option (a),
+# which is what this unit is written for.
 User=pi
 Group=pi
 Environment=DISPLAY=:0

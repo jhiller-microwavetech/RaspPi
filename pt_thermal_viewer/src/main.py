@@ -19,6 +19,7 @@ from PyQt5.QtWidgets import (
     QSizePolicy,
 )
 
+import ffc_control
 from capture import LeptonCapture, ThermalFrame, IMG_WIDTH, IMG_HEIGHT, IS_WINDOWS
 from render import (
     Palette,
@@ -506,24 +507,32 @@ class MainWindow(QMainWindow):
         self.roi = None
 
     def _on_ffc_clicked(self):
-        # Triggering FFC requires sending a Lepton CCI command through the
-        # PureThermal UVC extension unit. That needs the board's exact
-        # extension-unit GUID / control-selector values, which differ by
-        # firmware build and which I didn't have verified hardware access
-        # to confirm -- so it's deliberately not wired up here rather than
-        # guessing at register values.
-        #
-        # See GroupGets' reference implementation for the real values:
-        #   https://github.com/groupgets/purethermal1-uvc-capture
-        # (the ctypes/libuvc example there does CCI read/write over the XU)
-        QMessageBox.information(
-            self,
-            "Not wired up",
-            "FFC trigger isn't implemented yet -- it needs CCI-over-UVC "
-            "extension-unit calls specific to your firmware build. See the "
-            "comment in _on_ffc_clicked in main.py for the reference to "
-            "adapt.",
-        )
+        # See ffc_control.py for the full writeup: extension-unit GUID /
+        # control-selector values, why the Unit ID is discovered at
+        # runtime instead of hardcoded, and what's still unverified
+        # against real hardware (this has not been tested on the actual
+        # board yet -- watch the STATUS section's FFC dot after clicking
+        # to confirm it actually completes, not just that the button
+        # didn't error).
+        try:
+            ffc_control.trigger_ffc(self.capture.device)
+        except NotImplementedError as exc:
+            QMessageBox.information(self, "Not available here", str(exc))
+        except ffc_control.FFCTriggerError as exc:
+            QMessageBox.warning(self, "FFC trigger failed", str(exc))
+        except Exception as exc:
+            # Surface anything unexpected (e.g. a raw usb.core.USBError)
+            # rather than letting it crash the kiosk UI.
+            QMessageBox.warning(self, "FFC trigger failed", f"Unexpected error: {exc}")
+        else:
+            QMessageBox.information(
+                self,
+                "FFC triggered",
+                "FFC command sent. Watch FFC in the STATUS section below "
+                "to confirm it completes (IMMINENT → IN PROGRESS → "
+                "COMPLETE) -- this only confirms the USB command was "
+                "accepted, not that FFC itself succeeded.",
+            )
 
     _FFC_COLORS = {
         "NEVER_COMMANDED": "#555555",

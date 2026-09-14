@@ -40,14 +40,23 @@ own open-source tool:
    ```
    You want to see a 160x122 16-bit greyscale (Y16) mode.
 
-I did not wire up an in-app FFC-trigger button for the same reason —
-it requires sending a Lepton CCI command through the board's UVC
-extension unit, and the exact extension-unit GUID / control-selector
-values are firmware-build-specific. GroupGets' reference example has
-the real, tested values:
-https://github.com/groupgets/purethermal1-uvc-capture (the ctypes/
-libuvc example does CCI read/write over the XU) — worth adapting once
-you have the board in hand to check firmware version against it.
+The in-app "Run FFC" button now sends a real Lepton CCI command
+(RAD module's RUN_FFC) over the board's UVC extension unit — see
+`src/ffc_control.py` for the full protocol writeup, where the GUID/
+selector values came from, and why it discovers the extension unit's
+firmware-assigned Unit ID at runtime instead of hardcoding one. **Not
+yet verified against real hardware** — when you first try it, watch
+the sidebar's FFC status (STATUS section) to confirm it actually
+transitions IMMINENT → IN PROGRESS → COMPLETE rather than just
+trusting that the button didn't show an error. If it can't find the
+extension unit at all, compare `lsusb -v -d 1e4e:0100` output against
+`RAD_XU_GUID_STR` in that file — this firmware build may expose
+extension units differently than GroupGets' reference firmware
+(https://github.com/groupgets/purethermal1-uvc-capture).
+
+FFC trigger only works on Linux (the Pi); on Windows the button shows
+an explanatory dialog instead (dev-preview only, see `capture.py`'s
+`IS_WINDOWS` branches).
 
 ## Install (Raspberry Pi OS, Pi 3 Model B)
 
@@ -57,12 +66,17 @@ extremely slow and often runs out of memory.
 
 ```bash
 sudo apt update
-sudo apt install -y python3-opencv python3-pyqt5 v4l-utils
+sudo apt install -y python3-opencv python3-pyqt5 v4l-utils python3-usb
 ```
 
-`numpy` comes in as a dependency of python3-opencv.
+`numpy` comes in as a dependency of python3-opencv. `python3-usb` is
+only needed for the manual FFC trigger (`src/ffc_control.py`).
 
 ## USB permissions
+
+This same rule (`MODE="0666"` on the raw USB device node) is also what
+lets `ffc_control.py` open the device directly with pyusb for the FFC
+trigger — no separate permission setup needed for that.
 
 ```bash
 sudo cp packaging/99-purethermal.rules /etc/udev/rules.d/
@@ -82,13 +96,24 @@ python3 main.py /dev/video2    # or specify explicitly
 ## Autostart on boot (kiosk mode)
 
 ```bash
-sudo cp packaging/pt-thermal-viewer.service /etc/systemd/system/
-sudo systemctl enable pt-thermal-viewer.service
+sudo bash packaging/install.sh
 ```
-Edit the `User`/`WorkingDirectory`/paths in the unit file to match
-your actual install location and username first. Requires the Pi set
-to boot to desktop with auto-login (`sudo raspi-config` → System
-Options → Boot / Auto Login → Desktop Autologin).
+
+Installs the udev rule and adds a `cron @reboot` entry (via
+`packaging/run_kiosk.sh`, a small wrapper that waits for the desktop and
+restarts `main.py` if it ever crashes). Requires the Pi set to boot to
+desktop with auto-login, on the classic X11 desktop (Raspberry Pi OS now
+defaults to Wayland/labwc instead, which `run_kiosk.sh`'s fixed
+`DISPLAY`/`XAUTHORITY` don't work with) — see
+**[packaging/AUTOSTART.md](packaging/AUTOSTART.md)** for the full
+walkthrough, including the exact `raspi-config` steps, testing before
+reboot, and troubleshooting. Edit the paths in `packaging/run_kiosk.sh`
+first if your install location or username differs from `pi` /
+`/home/pi/pt_thermal_viewer`.
+
+(A systemd unit, `packaging/pt-thermal-viewer.service`, is also included
+as an alternative — it gets you `journalctl` logs and stricter process
+supervision — but `install.sh` sets up the cron path by default.)
 
 ## Performance notes for the Pi 3
 
@@ -131,8 +156,12 @@ src/
   telemetry.py    # parses the Lepton telemetry footer (FLIR datasheet Table 2/3)
   capture.py      # V4L2/OpenCV capture thread, device auto-detect
   render.py       # Kelvin->false-color image, spot-temp lookup
+  ffc_control.py  # manual FFC trigger over the UVC extension unit (Linux only)
   main.py         # PyQt5 fullscreen touch UI
 packaging/
   99-purethermal.rules       # udev rule for USB permissions
-  pt-thermal-viewer.service  # systemd kiosk autostart
+  run_kiosk.sh               # waits for X, restart-loops main.py, logs to kiosk.log
+  install.sh                 # installs the udev rule + a cron @reboot entry for run_kiosk.sh
+  pt-thermal-viewer.service  # alternative: systemd unit (not installed by install.sh)
+  AUTOSTART.md               # full autostart setup/troubleshooting walkthrough
 ```

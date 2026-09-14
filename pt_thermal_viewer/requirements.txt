@@ -1,3 +1,8 @@
 numpy
 opencv-python
 PyQt5
+# Only used by ffc_control.py's manual FFC trigger, and only on Linux (the
+# Pi deployment target -- see ffc_control.py). On the Pi, prefer
+# `sudo apt install python3-usb` over this line for the same
+# build-from-source-is-slow reason as opencv/PyQt5 below.
+pyusb

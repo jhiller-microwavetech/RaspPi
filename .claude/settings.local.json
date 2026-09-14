@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(graphify update *)",
+      "Bash(python -m py_compile main.py)",
+      "Bash(timeout 8 python main.py --windowed 0)",
+      "Bash(powershell -NoProfile -Command 'Get-Process | Where-Object { $_.MainWindowTitle -eq '\\\\''Thermal Viewer'\\\\'' } | Stop-Process -Force')",
+      "Skill(run)",
+      "Bash(find . -path ./pt_thermal_viewer/src/graphify-out -prune -o -iname \"SKILL.md\" -print)",
+      "Bash(ls .claude/skills)",
+      "Bash(python -c ' *)",
+      "Bash(python \"C:/Users/jhiller/AppData/Local/Temp/claude/C--Users-jhiller-documents-pt-thermal-viewer-final/07ac16bb-f701-4018-ad45-8b22a9754092/scratchpad/smoke_test.py\")",
+      "Bash(python -We -c ' *)",
+      "Read(//c/Users/jhiller/.claude/**)",
+      "Bash(where graphify *)",
+      "Bash(where graphify.exe)",
+      "Read(//c//**)",
+      "Bash(graphify --help)",
+      "Bash(wc -l /tmp_graphify_help.txt)",
+      "Bash(env)",
+      "Bash(where claude *)",
+      "Bash(graphify extract *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(graphify query *)"
+    ]
+  }
+}

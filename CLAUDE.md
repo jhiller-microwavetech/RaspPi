@@ -55,13 +55,21 @@ setting done externally via GetThermal (see README) — the app has no code
 path to set it. If you see a `RuntimeError` about unexpected frame size in
 `capture.LeptonCapture.open`, it's this, not an app bug.
 
-FFC (flat-field correction) triggering is deliberately *not* implemented
-(`MainWindow._on_ffc_clicked` just shows a dialog) — it requires sending a
-Lepton CCI command through the board's UVC extension unit, and the
-extension-unit GUID/control-selector values are firmware-build-specific.
-Don't try to "finish" this without real hardware to verify against; see the
-comment in `main.py` for the reference implementation to adapt
-(groupgets/purethermal1-uvc-capture).
+FFC (flat-field correction) triggering is now implemented in
+`src/ffc_control.py` (`MainWindow._on_ffc_clicked` calls
+`ffc_control.trigger_ffc`) — it sends the Lepton RAD module's RUN_FFC
+command through the board's UVC extension unit. GUID/control-selector
+values came from GroupGets' own v4l2/uvcdynctrl mapping
+(groupgets/purethermal1-uvc-capture) and their firmware wiki; the
+firmware-assigned Unit ID (the part that's genuinely build-specific) is
+discovered at runtime by matching the extension unit's GUID against the
+device's live USB descriptors, rather than hardcoded. **This has not been
+verified against real hardware yet** — see the verification checklist in
+`ffc_control.py`'s docstring before trusting it, and watch the sidebar's
+FFC status transition through IMMINENT → IN PROGRESS → COMPLETE the first
+time you click it rather than just trusting the absence of an error.
+Linux only; the Windows dev-preview path raises `NotImplementedError`
+(the equivalent there is DirectShow's `IKsControl`, not implemented).
 
 ## Data pipeline / architecture
 
