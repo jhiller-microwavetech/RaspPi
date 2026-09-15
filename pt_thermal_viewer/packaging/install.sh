@@ -20,7 +20,7 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 REPO_ROOT="$(dirname -- "$SCRIPT_DIR")"          # .../pt_thermal_viewer
 UDEV_SRC="$SCRIPT_DIR/99-purethermal.rules"
 KIOSK_SCRIPT="$SCRIPT_DIR/run_kiosk.sh"
-EXPECTED_MAIN="/home/pi/pt_thermal_viewer/src/main.py"
+EXPECTED_MAIN="/home/pi/Downloads/RaspPi/pt_thermal_viewer/src/main.py"
 CRON_USER="pi"
 
 echo "== pt_thermal_viewer autostart installer (cron @reboot) =="
@@ -94,4 +94,4 @@ echo "     (Raw14 + TLinear + telemetry footer) -- see the main README."
 echo
 echo "Test now without rebooting:"
 echo "  sudo -u $CRON_USER $KIOSK_SCRIPT &"
-echo "  tail -f /home/$CRON_USER/pt_thermal_viewer/kiosk.log"
+echo "  tail -f /home/pi/Downloads/RaspPi/pt_thermal_viewer/kiosk.log"

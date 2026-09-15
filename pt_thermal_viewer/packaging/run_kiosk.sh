@@ -9,8 +9,8 @@
 # loops main.py so a crash reopens it instead of leaving a blank screen
 # until the next reboot.
 
-APP_DIR="/home/pi/pt_thermal_viewer/src"
-LOG="/home/pi/pt_thermal_viewer/kiosk.log"
+APP_DIR="/home/pi/Downloads/RaspPi/pt_thermal_viewer/src"
+LOG="/home/pi/Downloads/RaspPi/pt_thermal_viewer/kiosk.log"
 export DISPLAY=:0
 export XAUTHORITY=/home/pi/.Xauthority
 
