@@ -36,6 +36,14 @@ from render import (
 
 POLL_MS = 110  # a bit slower than the 8.7 Hz sensor rate, avoids busy-polling
 
+# Fixed contrast-stretch range for the display/scale bar (see render.py's
+# manual_range_c) -- was auto-scaling to each frame's own min/max, which
+# made the same object shift color frame to frame. Locked to the cavity's
+# expected operating range instead; does not affect the actual temperature
+# readout (spot/ROI/min/max stats), only the false-color mapping.
+SCALE_MIN_C = 30.0
+SCALE_MAX_C = 100.0
+
 # Official Raspberry Pi Foundation 7" Touch Display resolution. The app
 # window is fixed at exactly this size on every platform -- it's the only
 # size this UI ever runs at, so every size below is a plain constant tuned
@@ -259,6 +267,7 @@ class MainWindow(QMainWindow):
         self.latest_frame: ThermalFrame = None
         self.smoother = TemporalSmoother(alpha=0.5)
         self.sharpen_amount = 0.6
+        self.manual_range_c = (SCALE_MIN_C, SCALE_MAX_C)
 
         self.view = ThermalView(self._on_tap, self._on_drag)
         self.sidebar_widget = self._build_sidebar()
@@ -550,7 +559,10 @@ class MainWindow(QMainWindow):
         smoothed_k100 = self.smoother.update(frame.image_k100)
 
         bgr, (lo_c, hi_c) = render_frame(
-            smoothed_k100, palette=self.palette, sharpen_amount=self.sharpen_amount
+            smoothed_k100,
+            palette=self.palette,
+            manual_range_c=self.manual_range_c,
+            sharpen_amount=self.sharpen_amount,
         )
 
         draw_scale_bar(bgr, self.palette, self._fmt_temp(lo_c), self._fmt_temp(hi_c))
