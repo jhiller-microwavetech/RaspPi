@@ -36,13 +36,14 @@ from render import (
 
 POLL_MS = 110  # a bit slower than the 8.7 Hz sensor rate, avoids busy-polling
 
-# Fixed contrast-stretch range for the display/scale bar (see render.py's
-# manual_range_c) -- was auto-scaling to each frame's own min/max, which
-# made the same object shift color frame to frame. Locked to the cavity's
-# expected operating range instead; does not affect the actual temperature
-# readout (spot/ROI/min/max stats), only the false-color mapping.
-SCALE_MIN_C = 30.0
-SCALE_MAX_C = 100.0
+# Contrast-stretch window for the display/scale bar (see render.py's
+# manual_range_c): fixed WIDTH, but recentered every frame on the
+# midpoint of that frame's own min/max -- a compromise between full
+# auto-scale (same object shifts color frame to frame) and a fully
+# static range (too wide once the scene sits far from either end).
+# Does not affect the actual temperature readout (spot/ROI/min/max
+# stats), only the false-color mapping.
+SCALE_WIDTH_C = 40.0
 
 # Official Raspberry Pi Foundation 7" Touch Display resolution. The app
 # window is fixed at exactly this size on every platform -- it's the only
@@ -267,7 +268,7 @@ class MainWindow(QMainWindow):
         self.latest_frame: ThermalFrame = None
         self.smoother = TemporalSmoother(alpha=0.5)
         self.sharpen_amount = 0.6
-        self.manual_range_c = (SCALE_MIN_C, SCALE_MAX_C)
+        self.scale_width_c = SCALE_WIDTH_C
 
         self.view = ThermalView(self._on_tap, self._on_drag)
         self.sidebar_widget = self._build_sidebar()
@@ -558,10 +559,17 @@ class MainWindow(QMainWindow):
 
         smoothed_k100 = self.smoother.update(frame.image_k100)
 
+        # Fixed-width window recentered each frame on this frame's own
+        # min/max midpoint -- see SCALE_WIDTH_C comment above.
+        stats = scene_stats_c(smoothed_k100)
+        midpoint_c = (stats["min_c"] + stats["max_c"]) / 2.0
+        half_width = self.scale_width_c / 2.0
+        scale_range_c = (midpoint_c - half_width, midpoint_c + half_width)
+
         bgr, (lo_c, hi_c) = render_frame(
             smoothed_k100,
             palette=self.palette,
-            manual_range_c=self.manual_range_c,
+            manual_range_c=scale_range_c,
             sharpen_amount=self.sharpen_amount,
         )
 
@@ -592,7 +600,6 @@ class MainWindow(QMainWindow):
 
         self.view.show_bgr(bgr)
 
-        stats = scene_stats_c(smoothed_k100)
         self.val_min.setText(self._fmt_temp(stats["min_c"]))
         self.val_max.setText(self._fmt_temp(stats["max_c"]))
         self.val_mean.setText(self._fmt_temp(stats["mean_c"]))
