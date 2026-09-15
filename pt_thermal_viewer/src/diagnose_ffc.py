@@ -45,8 +45,23 @@ print("\n--- Step 4: scan for the RAD extension unit by GUID ---")
 unit_id = ffc_control._discover_rad_unit_id(device)
 print(f"RAD extension unit id = {unit_id} (0x{unit_id:02x})")
 
-print("\n--- Step 5: send RUN_FFC via UVCIOC_CTRL_QUERY on the V4L2 node ---")
-ffc_control._send_via_v4l2_ioctl(
-    device, unit_id, ffc_control.RAD_RUN_FFC_SELECTOR, b"\x00"
+print("\n--- Step 5: GET_LEN for RAD_RUN_FFC's actual control size ---")
+control_len = ffc_control._query_control_len(
+    device, unit_id, ffc_control.RAD_RUN_FFC_SELECTOR
+)
+print(
+    f"RAD_RUN_FFC control length = {control_len} byte(s) "
+    "(GroupGets' mapping file implies 1 -- this is what the firmware "
+    "itself reports, which is what actually matters; a mismatch here is "
+    "exactly what produced the earlier ENOBUFS failure)"
+)
+
+print("\n--- Step 6: send RUN_FFC via UVCIOC_CTRL_QUERY on the V4L2 node ---")
+ffc_control._do_ctrl_query_ioctl(
+    device,
+    unit_id,
+    ffc_control.RAD_RUN_FFC_SELECTOR,
+    ffc_control._UVC_SET_CUR,
+    size=control_len,
 )
 print("Sent OK -- check the app's FFC status / telemetry for confirmation.")
