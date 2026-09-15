@@ -2,7 +2,7 @@
 
 This sets up the app to launch full-screen as soon as the Pi finishes
 booting, no login or terminal needed, via a `cron @reboot` entry for the
-`pi` user — no separate compiled binary, just the existing `main.py`
+`jmullaney` user — no separate compiled binary, just the existing `main.py`
 script launched by a small wrapper.
 
 ## 0. One-time prerequisites (do these first if you haven't)
@@ -68,7 +68,7 @@ until the next reboot.
 `xset`, falling back to a fixed 15s sleep if `xset` isn't installed) for
 up to 60 seconds before launching, then loops `main.py` forever — if it
 ever exits, it's relaunched 3 seconds later. All output (its own and
-`main.py`'s) goes to `~/pt_thermal_viewer/kiosk.log`.
+`main.py`'s) goes to `~/Downloads/RaspPi/pt_thermal_viewer/kiosk.log`.
 
 ## 3. Install the udev rule and the cron entry
 
@@ -80,21 +80,22 @@ sudo bash packaging/install.sh
 
 This copies `packaging/99-purethermal.rules` to `/etc/udev/rules.d/`,
 makes `packaging/run_kiosk.sh` executable, and adds an
-`@reboot /path/to/packaging/run_kiosk.sh` line to the `pi` user's
+`@reboot /path/to/packaging/run_kiosk.sh` line to the `jmullaney` user's
 crontab (skipping it if that line is already there, so it's safe to
 re-run). It also does a couple of sanity checks (that the board's actual
 USB VID:PID matches the udev rule, and that the repo is installed where
 `run_kiosk.sh` expects) and warns you if not.
 
-If your username, home directory, or install path isn't `pi` /
-`/home/pi/pt_thermal_viewer`, edit `packaging/run_kiosk.sh` (`APP_DIR`,
-`XAUTHORITY`, `LOG`) to match *before* running `install.sh`.
+If your username, home directory, or install path isn't `jmullaney` /
+`/home/jmullaney/Downloads/RaspPi/pt_thermal_viewer`, edit
+`packaging/run_kiosk.sh` (`APP_DIR`, `XAUTHORITY`, `LOG`) to match
+*before* running `install.sh`.
 
 ## 4. Test it without rebooting
 
 ```bash
-sudo -u pi /home/pi/pt_thermal_viewer/packaging/run_kiosk.sh &
-tail -f /home/pi/pt_thermal_viewer/kiosk.log
+sudo -u jmullaney /home/jmullaney/Downloads/RaspPi/pt_thermal_viewer/packaging/run_kiosk.sh &
+tail -f /home/jmullaney/Downloads/RaspPi/pt_thermal_viewer/kiosk.log
 ```
 
 You should see the fullscreen thermal view come up over the desktop
@@ -132,13 +133,13 @@ interaction.
   board in after boot (or a board that enumerates late) should recover
   on its own without a reboot.
 - **Nothing in `kiosk.log` at all.** Confirm the crontab entry actually
-  landed: `sudo crontab -u pi -l` should show the `@reboot` line. Also
-  confirm cron itself is running: `systemctl status cron`.
+  landed: `sudo crontab -u jmullaney -l` should show the `@reboot` line.
+  Also confirm cron itself is running: `systemctl status cron`.
 
 ## Uninstalling
 
 ```bash
 sudo pkill -f run_kiosk.sh
-crontab -u pi -l | grep -v run_kiosk.sh | crontab -u pi -
+crontab -u jmullaney -l | grep -v run_kiosk.sh | crontab -u jmullaney -
 sudo rm /etc/udev/rules.d/99-purethermal.rules
 ```

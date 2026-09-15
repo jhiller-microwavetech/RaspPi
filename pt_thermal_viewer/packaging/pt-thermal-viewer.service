@@ -5,7 +5,7 @@ Wants=graphical.target
 
 [Service]
 # Assumes raspi-config: System Options -> Boot / Auto Login -> Desktop
-# Autologin, user "pi", AND Advanced Options -> Wayland -> X11.
+# Autologin, user "jmullaney", AND Advanced Options -> Wayland -> X11.
 #
 # Raspberry Pi OS (Bookworm and later) now boots to the Wayland/labwc
 # desktop by default on every Pi model, including the Pi 3. Under that
@@ -19,12 +19,12 @@ Wants=graphical.target
 #       than this systemd unit, and drop the DISPLAY/XAUTHORITY lines.
 # See packaging/AUTOSTART.md for the full walkthrough of option (a),
 # which is what this unit is written for.
-User=pi
-Group=pi
+User=jmullaney
+Group=jmullaney
 Environment=DISPLAY=:0
-Environment=XAUTHORITY=/home/pi/.Xauthority
-WorkingDirectory=/home/pi/pt_thermal_viewer/src
-ExecStart=/usr/bin/python3 /home/pi/pt_thermal_viewer/src/main.py
+Environment=XAUTHORITY=/home/jmullaney/.Xauthority
+WorkingDirectory=/home/jmullaney/Downloads/RaspPi/pt_thermal_viewer/src
+ExecStart=/usr/bin/python3 /home/jmullaney/Downloads/RaspPi/pt_thermal_viewer/src/main.py
 Restart=on-failure
 RestartSec=3
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Kiosk launch wrapper for pt_thermal_viewer, meant to be run from the
-# pi user's crontab via @reboot (see packaging/install.sh).
+# jmullaney user's crontab via @reboot (see packaging/install.sh).
 #
 # cron's @reboot fires as soon as cron itself starts, which is normally
 # well before the X11 desktop (raspi-config Desktop Autologin) is up, and
@@ -9,10 +9,10 @@
 # loops main.py so a crash reopens it instead of leaving a blank screen
 # until the next reboot.
 
-APP_DIR="/home/pi/Downloads/RaspPi/pt_thermal_viewer/src"
-LOG="/home/pi/Downloads/RaspPi/pt_thermal_viewer/kiosk.log"
+APP_DIR="/home/jmullaney/Downloads/RaspPi/pt_thermal_viewer/src"
+LOG="/home/jmullaney/Downloads/RaspPi/pt_thermal_viewer/kiosk.log"
 export DISPLAY=:0
-export XAUTHORITY=/home/pi/.Xauthority
+export XAUTHORITY=/home/jmullaney/.Xauthority
 
 # Send all output (ours and main.py's) to the log file from here on.
 exec >>"$LOG" 2>&1

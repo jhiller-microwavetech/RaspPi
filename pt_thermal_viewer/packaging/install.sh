@@ -10,7 +10,7 @@
 set -euo pipefail
 
 if [[ $EUID -ne 0 ]]; then
-    echo "This script needs root (it writes to /etc and edits pi's crontab). Re-run with sudo." >&2
+    echo "This script needs root (it writes to /etc and edits jmullaney's crontab). Re-run with sudo." >&2
     exit 1
 fi
 
@@ -20,8 +20,8 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 REPO_ROOT="$(dirname -- "$SCRIPT_DIR")"          # .../pt_thermal_viewer
 UDEV_SRC="$SCRIPT_DIR/99-purethermal.rules"
 KIOSK_SCRIPT="$SCRIPT_DIR/run_kiosk.sh"
-EXPECTED_MAIN="/home/pi/Downloads/RaspPi/pt_thermal_viewer/src/main.py"
-CRON_USER="pi"
+EXPECTED_MAIN="/home/jmullaney/Downloads/RaspPi/pt_thermal_viewer/src/main.py"
+CRON_USER="jmullaney"
 
 echo "== pt_thermal_viewer autostart installer (cron @reboot) =="
 echo "Repo root detected as: $REPO_ROOT"
@@ -94,4 +94,4 @@ echo "     (Raw14 + TLinear + telemetry footer) -- see the main README."
 echo
 echo "Test now without rebooting:"
 echo "  sudo -u $CRON_USER $KIOSK_SCRIPT &"
-echo "  tail -f /home/pi/Downloads/RaspPi/pt_thermal_viewer/kiosk.log"
+echo "  tail -f /home/jmullaney/Downloads/RaspPi/pt_thermal_viewer/kiosk.log"
