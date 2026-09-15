@@ -43,7 +43,7 @@ POLL_MS = 110  # a bit slower than the 8.7 Hz sensor rate, avoids busy-polling
 # static range (too wide once the scene sits far from either end).
 # Does not affect the actual temperature readout (spot/ROI/min/max
 # stats), only the false-color mapping.
-SCALE_WIDTH_C = 40.0
+SCALE_WIDTH_C = 50.0
 
 # Official Raspberry Pi Foundation 7" Touch Display resolution. The app
 # window is fixed at exactly this size on every platform -- it's the only
